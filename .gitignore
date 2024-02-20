@@ -2,6 +2,7 @@
 test
 data
 attention_geometry.egg-info
+attention_geometry.egg-info/SOURCES.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
