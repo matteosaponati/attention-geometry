@@ -1,6 +1,7 @@
 ## folders
 test
 data
+attention_geometry.egg-info
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
