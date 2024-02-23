@@ -1,9 +1,0 @@
-README.md
-setup.py
-attention_geometry.egg-info/PKG-INFO
-attention_geometry.egg-info/SOURCES.txt
-attention_geometry.egg-info/dependency_links.txt
-attention_geometry.egg-info/top_level.txt
-scripts/__init__.py
-src/__init__.py
-utils/__init__.py
