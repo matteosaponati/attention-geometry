@@ -1,8 +1,10 @@
 ## folders
-test
-data
-attention_geometry.egg-info
-attention_geometry.egg-info/SOURCES.txt
+_test
+_data
+_attention_geometry.egg-info
+_attention_geometry.egg-info/SOURCES.txt
+_examples
+_notes
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
