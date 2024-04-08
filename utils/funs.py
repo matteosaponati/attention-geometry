@@ -15,6 +15,20 @@ def scores(A):
 
     return S, N
 
+def get_eigenvalues_type(A):
+    """
+    """
+     
+    eig = np.linalg.eigvals(A)
+
+    # realidx = np.where(np.imag(eig) == 0)
+    # positive = np.sum(np.real(eig[realidx]) > 0)
+    # negative = np.sum(np.real(eig[realidx]) < 0)
+    # zero = np.sum(np.real(eig[realidx]) == 0)
+    # complex = np.sum(np.imag(eig) != 0) 
+
+    return eig
+
 def dotproduct_normal(A,rep=100):
     """
     Given a square matrix A, calculate the symmetric (S) and skew-symmetric (N) scores of a matrix.
