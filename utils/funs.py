@@ -16,22 +16,15 @@ def scores(A):
     return S, N
 
 def scores_trace(Wq, Wk):
-    """
-    Given a square matrix A, calculate the symmetric (S) and skew-symmetric (N) scores of a matrix.
-    Args:
-        - A (numpy.ndarray) : square numpy matrix.
-
-    Returns:
-        - tuple : Symmetric (S) and skew-symmetric (N) scores.
-    """
      
+    ## (k x n) @ (n x k) -> O(nk^2)
     A = Wq.T @ Wq
     B = Wk.T @ Wk
     C = Wk.T @ Wq
 
-    r = .5 * (1 + (np.einsum('ij,ji->', C, C) / np.einsum('ij,ji->', A, B)))
-    
-    return r
+    S = .5 * (1 + (np.einsum('ij,ji->', C, C) / np.einsum('ij,ji->', A, B)))
+
+    return S
 
 def dotproduct_normal(A,rep=100):
     """
