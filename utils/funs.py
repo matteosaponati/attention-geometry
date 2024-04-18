@@ -15,19 +15,23 @@ def scores(A):
 
     return S, N
 
-def get_eigenvalues_type(A):
+def scores_trace(Wq, Wk):
     """
+    Given a square matrix A, calculate the symmetric (S) and skew-symmetric (N) scores of a matrix.
+    Args:
+        - A (numpy.ndarray) : square numpy matrix.
+
+    Returns:
+        - tuple : Symmetric (S) and skew-symmetric (N) scores.
     """
      
-    eig = np.linalg.eigvals(A)
+    A = Wq.T @ Wq
+    B = Wk.T @ Wk
+    C = Wk.T @ Wq
 
-    # realidx = np.where(np.imag(eig) == 0)
-    # positive = np.sum(np.real(eig[realidx]) > 0)
-    # negative = np.sum(np.real(eig[realidx]) < 0)
-    # zero = np.sum(np.real(eig[realidx]) == 0)
-    # complex = np.sum(np.imag(eig) != 0) 
-
-    return eig
+    r = .5 * (1 + (np.einsum('ij,ji->', C, C) / np.einsum('ij,ji->', A, B)))
+    
+    return r
 
 def dotproduct_normal(A,rep=100):
     """
