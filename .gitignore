@@ -1,6 +1,7 @@
 ## folders
 _test
 _data
+_get_wandb_data
 _attention_geometry.egg-info
 _attention_geometry.egg-info/SOURCES.txt
 _examples
