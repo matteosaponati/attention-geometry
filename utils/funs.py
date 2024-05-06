@@ -1,17 +1,20 @@
 import numpy as np 
 
 def scores(A):
-    """
-    Given a square matrix A, calculate the symmetric (S) and skew-symmetric (N) scores of a matrix.
-    Args:
-        - A (numpy.ndarray) : square numpy matrix.
+    """ Takes a square matrix A, computes its symmetric and skew symmetric components (time complexity O(d)),
+    computes the norm of SYM and SKEWSYM, and finally computes the ratio of the norms.
 
+    Args:
+        - A (numpy.ndarray): square numpy matrix.
     Returns:
-        - tuple : Symmetric (S) and skew-symmetric (N) scores.
+        - tuple: Symmetric (S) and skew-symmetric (N) scores.
     """
+
+    SYM = .5 * (A + A.T)
+    SKEWSYM = .5 * (A - A.T)
      
-    S = np.linalg.norm(.5 * (A + A.T), 'fro') / np.linalg.norm(A, 'fro')
-    N = np.linalg.norm(.5 * (A - A.T), 'fro') / np.linalg.norm(A, 'fro')
+    S = np.linalg.norm(SYM, 'fro') / np.linalg.norm(A, 'fro')
+    N = np.linalg.norm(SKEWSYM, 'fro') / np.linalg.norm(A, 'fro')
 
     return S, N
 
