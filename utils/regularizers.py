@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 def get_score_norm(A):
     """ Takes a square matrix A, computes its symmetric and skew symmetric components (time complexity O(d)),
@@ -69,6 +70,26 @@ def get_score_trace(Wq, Wk):
     C = Wk.T @ Wq
     S = .5 * (1 + (np.einsum('ij,ji->', C, C)) / np.einsum('ij,ji->', A, B))
     N = .5 * (1 - (np.einsum('ij,ji->', C, C)) / np.einsum('ij,ji->', A, B))
+
+    return S, N
+
+def get_score_trace_heads(Wq, Wk):
+    """ Takes the Wq and Wk matrices (size (h,d,d_h)), computes the matrices A, B, and C 
+    with time complexity O(d d_h^2), and computes the ratio of the norms as above. This
+    computation is done per head.
+            
+    Args:
+        - Wq (numpy.ndarray): numpy matrix.
+        - Wk (numpy.ndarray): numpy matrix.
+    Returns:
+        - tuple: Symmetric (S) and skew-symmetric (N) scores.
+    """
+     
+    A = torch.matmul(Wq.transpose(-1,-2), Wq)
+    B = torch.matmul(Wk.transpose(-1,-2), Wk)
+    C = torch.matmul(Wk.transpose(-1,-2), Wq)
+    S = .5 * (1 + (np.einsum('hij,hji->h', C, C)) / np.einsum('hij,hji->h', A, B))
+    N = .5 * (1 - (np.einsum('hij,hji->h', C, C)) / np.einsum('hij,hji->h', A, B))
 
     return S, N
 
