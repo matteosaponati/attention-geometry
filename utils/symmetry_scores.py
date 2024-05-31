@@ -1,4 +1,27 @@
 import numpy as np 
+from .funs import get_nested_attr
+
+def get_scores(d: int, l: int, h: int, dh: int, 
+               model, path: list, mode: str = "trace") -> np.ndarray:
+    
+    """ Computes the symmetry scores for a given model and returns a 
+    nnumpy array of dimension (# layers, # heads)
+    """
+
+    score_List = np.zeros((l,h))
+
+    for i in range(l):
+        
+        Wq = get_nested_attr(model, path[0] + f"{i}" + path[1]).T.view(d, h, dh).detach().numpy()
+        Wk = get_nested_attr(model, path[0] + f"{i}" + path[2]).T.view(d, h, dh).detach().numpy()
+
+        for j in range(h):
+
+            if mode == 'trace': score_List[i,j] = get_scores_trace(Wq[:, j, :], Wk[:, j, :])
+            if mode == 'norm': score_List[i,j] = get_scores_norm(Wq[:, j, :] @ Wk[:, j, :].T)
+            if mode == 'sum': score_List[i,j] = get_scores_sum(Wq[:, j, :] @ Wk[:, j, :].T)
+
+    return  score_List
 
 def get_scores_trace(Wq, Wk):
     """ Takes the Wq and Wk matrices (size (d,d_h)), computes the matrices A, B, and C 
@@ -37,7 +60,7 @@ def get_scores_trace(Wq, Wk):
 
     return score
 
-def get_score_norm(A):
+def get_scores_norm(A):
     """ Takes a square matrix A, computes its symmetric and skew symmetric components (time complexity O(d)),
     computes the norm of SYM, SKEWSYM and A (np.linalg.norm), and computes the ratio of the norms.
 
@@ -54,7 +77,7 @@ def get_score_norm(A):
 
     return S, N
 
-def get_score_sum(A):
+def get_scores_sum(A):
     """ Takes a square matrix A, computes its symmetric and skew symmetric components (time complexity O(d)),
     computes the square norm of SYM, SKEWSYM and A (sum of the square of matrix entries), 
     and computes the ratio of the norms.
