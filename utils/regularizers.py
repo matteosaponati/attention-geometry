@@ -93,6 +93,8 @@ def get_score_trace_heads(Wq, Wk):
 
     return S, N
 
+####
+
 def get_non_random_component(Wq, Wk):
     """ Takes the Wq and Wk matrices (size (d,d_h)), computes the matrix C 
     with time complexity O(d d_h^2), and computes the non-random component of
