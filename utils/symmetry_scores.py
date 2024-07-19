@@ -2,7 +2,8 @@ import numpy as np
 from .funs import get_nested_attr
 
 def get_scores(d: int, l: int, h: int, dh: int, 
-               model, path: list, mode: str = "trace") -> np.ndarray:
+               model, path: list, 
+               mode: str = "trace", model_type: str = "BERT") -> np.ndarray:
     
     """ Computes the symmetry scores for a given model and returns a 
     nnumpy array of dimension (# layers, # heads)
@@ -12,14 +13,47 @@ def get_scores(d: int, l: int, h: int, dh: int,
 
     for i in range(l):
         
-        Wq = get_nested_attr(model, path[0] + f"{i}" + path[1]).T.view(d, h, dh).detach().numpy()
-        Wk = get_nested_attr(model, path[0] + f"{i}" + path[2]).T.view(d, h, dh).detach().numpy()
+        if model_type == 'GPT':
+            Wq = get_nested_attr(model, path[0] + f"{i}" + path[1])[:,  : d].view(d, h, dh).detach().numpy()
+            Wk = get_nested_attr(model, path[0] + f"{i}" + path[1])[:, d : 2*d].view(d, h, dh).detach().numpy()
+            
+        else:
+            Wq = get_nested_attr(model, path[0] + f"{i}" + path[1]).T.view(d, h, dh).detach().numpy()
+            Wk = get_nested_attr(model, path[0] + f"{i}" + path[2]).T.view(d, h, dh).detach().numpy()
 
         for j in range(h):
 
             if mode == 'trace': score_List[i,j] = get_scores_trace(Wq[:, j, :], Wk[:, j, :])
             if mode == 'norm': score_List[i,j] = get_scores_norm(Wq[:, j, :] @ Wk[:, j, :].T)
             if mode == 'sum': score_List[i,j] = get_scores_sum(Wq[:, j, :] @ Wk[:, j, :].T)
+
+    return  score_List
+
+def get_scores_full(d: int, l: int, h: int, dh: int, 
+               model, path: list, 
+               mode: str = "trace", model_type: str = "BERT") -> np.ndarray:
+    
+    """ Computes the symmetry scores for a given model and returns a 
+    nnumpy array of dimension (# layers, # heads)
+    """
+
+    score_List = np.zeros((l,h))
+
+    for i in range(l):
+        
+        if model_type == 'GPT':
+            Wq = get_nested_attr(model, path[0] + f"{i}" + path[1])[:,  : d].detach().numpy()
+            Wk = get_nested_attr(model, path[0] + f"{i}" + path[1])[:, d : 2*d].detach().numpy()
+            
+        else:
+            Wq = get_nested_attr(model, path[0] + f"{i}" + path[1]).T.detach().numpy()
+            Wk = get_nested_attr(model, path[0] + f"{i}" + path[2]).T.detach().numpy()
+
+        for j in range(h):
+
+            if mode == 'trace': score_List[i,j] = get_scores_trace(Wq, Wk)
+            if mode == 'norm': score_List[i,j] = get_scores_norm(Wq @ Wk.T)
+            if mode == 'sum': score_List[i,j] = get_scores_sum(Wq @ Wk.T)
 
     return  score_List
 
