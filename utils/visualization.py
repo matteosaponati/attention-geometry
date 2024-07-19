@@ -62,3 +62,14 @@ def symmetry_score_outliers(models):
     plt.axhline(y = .0,color='k',linestyle='dashed')
 
     return
+
+def plot_median_errorbars(parameters, scores, color = 'purple'):
+
+    for k in range(len(parameters)):
+
+        median = np.median(scores[k])
+        q1_range = median - np.percentile(scores[k], 25)
+        q2_range = np.percentile(scores[k], 75) - median
+
+        plt.errorbar(parameters[k], median, yerr = [[q1_range], [q2_range]], 
+                     fmt = 'o', ecolor = color, capsize = 5, marker = 'o', markersize = 5, color = color)
