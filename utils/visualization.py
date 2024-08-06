@@ -67,9 +67,11 @@ def plot_median_errorbars(parameters, scores, color = 'purple'):
 
     for k in range(len(parameters)):
 
-        median = np.median(scores[k])
-        q1_range = median - np.percentile(scores[k], 25)
-        q2_range = np.percentile(scores[k], 75) - median
+        scores_norm = 2 * scores[k] - 1
+
+        median = np.median(scores_norm)
+        q1_range = median - np.percentile(scores_norm, 25)
+        q2_range = np.percentile(scores_norm, 75) - median
 
         plt.errorbar(parameters[k], median, yerr = [[q1_range], [q2_range]], 
                      fmt = 'o', ecolor = color, capsize = 5, marker = 'o', markersize = 5, color = color)
