@@ -1,4 +1,5 @@
 import numpy as np
+import torch.nn as nn
 
 def get_nested_attr(obj, attr_path): 
     """ Recursively get nested attributes"""
@@ -27,3 +28,12 @@ def count_outliers(arr):
     outliers = arr[((arr < Q1 - 1.5 * IQR) | (arr > Q3 + 1.5 * IQR))]
     
     return outliers
+
+def count_parameters(model, Embedding_FLAG = False):
+    
+    if Embedding_FLAG == True:
+        return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+    else:
+        return sum(p.numel() for name, module in model.named_modules()
+        for p in module.parameters(recurse=False) if p.requires_grad and not isinstance(module, nn.Embedding))
