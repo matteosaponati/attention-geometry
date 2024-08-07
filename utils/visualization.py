@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import to_rgb
 from .funs import count_outliers
 
 def symmetry_score_boxplot(models):
@@ -75,3 +76,9 @@ def plot_median_errorbars(parameters, scores, color = 'purple'):
 
         plt.errorbar(parameters[k], median, yerr = [[q1_range], [q2_range]], 
                      fmt = 'o', ecolor = color, capsize = 5, marker = 'o', markersize = 5, color = color)
+        
+
+def get_colors(color, n, max_blend = .8):
+    base_color = to_rgb(color)
+    tones = np.array([(1 - (i / (n - 1)) * max_blend) * np.array(base_color) + ((i / (n - 1)) * max_blend) * np.array([1, 1, 1]) for i in range(n)])
+    return tones
