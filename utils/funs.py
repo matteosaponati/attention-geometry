@@ -37,3 +37,34 @@ def count_parameters(model, Embedding_FLAG = False):
     else:
         return sum(p.numel() for name, module in model.named_modules()
         for p in module.parameters(recurse=False) if p.requires_grad and not isinstance(module, nn.Embedding))
+    
+def get_interpolation(data):
+
+    data = data.to_numpy()
+    x = np.arange(data.size)
+    data = np.interp(x, x[~np.isnan(data)], 
+                                  data[~np.isnan(data)])
+
+    return data
+
+def get_symmetry_training(data, layers, heads, epochs):
+    
+    scores = np.zeros((layers, heads, epochs))
+    for l in range(layers):
+        for h in range(heads):
+            scores[l, h, :] = np.array(get_interpolation(data[f'Layer {l}/Head {h} Symmetry']))
+    
+    return scores
+
+def get_symmetry_layers_heads(data, layers, heads):
+    return [(get_interpolation(data[f'Layer {l}/Head {h} Symmetry']))[-1] for l in range(layers) for h in range(heads)]
+
+def get_specs(data):
+    return [get_interpolation(data['_step']),
+            get_interpolation(data['train/global_step']),
+            get_interpolation(data['Mean Symmetry']),
+            get_interpolation(data['Min Symmetry']),
+            get_interpolation(data['Max Symmetry']),
+            get_interpolation(data['Median Symmetry']),
+            get_interpolation(data['Variance Symmetry']),
+            get_interpolation(data['train/loss'])]

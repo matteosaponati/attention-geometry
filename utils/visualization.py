@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import to_rgb
 from .funs import count_outliers
 
 def symmetry_score_boxplot(models):
@@ -64,7 +63,7 @@ def symmetry_score_outliers(models):
 
     return
 
-def plot_median_errorbars(parameters, scores, color = 'purple'):
+def plot_median_errorbars(parameters, scores, color = 'purple', alpha = 1.):
 
     for k in range(len(parameters)):
 
@@ -75,10 +74,39 @@ def plot_median_errorbars(parameters, scores, color = 'purple'):
         q2_range = np.percentile(scores_norm, 75) - median
 
         plt.errorbar(parameters[k], median, yerr = [[q1_range], [q2_range]], 
-                     fmt = 'o', ecolor = color, capsize = 5, marker = 'o', markersize = 5, color = color)
-        
+                     fmt = 'o', ecolor = color, capsize = 5, marker = 'o', markersize = 5, color = color, alpha = alpha)
 
-def get_colors(color, n, max_blend = .8):
-    base_color = to_rgb(color)
-    tones = np.array([(1 - (i / (n - 1)) * max_blend) * np.array(base_color) + ((i / (n - 1)) * max_blend) * np.array([1, 1, 1]) for i in range(n)])
-    return tones
+def plot_median_training(specs, models, colors = []):
+
+    for idx, key in enumerate(list(specs.keys())):
+
+        scores = 2 * models[key] - 1
+        plt.plot(specs[key][0], np.median(scores, axis = (0,1)), color = colors[idx])
+        plt.fill_between(specs[key][0], 
+                np.percentile(scores, 25, axis = (0,1)),
+                np.percentile(scores, 75, axis = (0,1)),
+                color = colors[idx], alpha = .3)
+        
+def plot_median_initialization(data, layers, heads, c = 'navy', mode = 'full'):
+
+    scores = np.zeros((layers, heads, len(data['_step'])))
+    for l in range(layers):
+            for h in range(heads):
+                scores[l, h, :] = 2 * data[f'Layer {l}/Head {h} Symmetry WqWk'] - 1
+
+    if mode == 'full':
+
+        plt.plot(data['_step'], np.median(scores, axis = (0,1)), color = c)
+        plt.fill_between(data['_step'], 
+                np.percentile(scores, 25, axis = (0,1)),
+                np.percentile(scores, 75, axis = (0,1)),
+                color = c, alpha = .3)
+    
+    if mode == 'layers':
+
+        for l in range(layers):
+            plt.plot(data['_step'], np.median(scores, axis = 1)[l, :], color = c[l], label = f'layer {l}')
+            plt.fill_between(data['_step'], 
+                        np.percentile(scores, 25, axis = 1)[l, :],
+                        np.percentile(scores, 75, axis = 1)[l, :],
+                        color = c[l], alpha = .3)
