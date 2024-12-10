@@ -1,6 +1,7 @@
 ## folders
 figures
 _test
+_test-notebooks
 _data
 _get_wandb_data
 _attention_geometry.egg-info
