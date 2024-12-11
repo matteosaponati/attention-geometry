@@ -121,13 +121,13 @@ def get_M_shard(model_name: str, config, path: str, layer: int,
         W_path = model_name, path[0] + f"{layer}" + path[1]
         W = get_param(model_name, files, shard_format, index_file_name, W_path)
         Wq = W[:,  : d].detach()
-        Wq = W[:, d : 2*d].detach()
+        Wk = W[:, d : 2*d].detach()
 
     elif attn_type == 'gpt-neox':
         W_path = model_name, path[0] + f"{layer}" + path[1]
         W = get_param(model_name, files, shard_format, index_file_name, W_path)
         Wq = W[ : d, :].detach()
-        Wq = W[d : 2*d, :].detach()
+        Wk = W[d : 2*d, :].detach()
 
     elif attn_type == 'grouped-attention':
         Wq_path = path[0] + f"{layer}" + path[1]
