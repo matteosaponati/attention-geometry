@@ -150,27 +150,34 @@ def get_M_shard(model_name: str, config, path: str, layer: int,
 def get_M_fullmodel(model, config, path: str, layer: int, 
                 attn_type: str = 'BERT'):
         
-        d = config.hidden_size
-        dh = config.hidden_size // config.num_attention_heads
-    
-        if attn_type == 'GPT':
-            Wq = get_nested_attr(model, path[0] + f"{layer}" + path[1])[:,  : d].detach()
-            Wk = get_nested_attr(model, path[0] + f"{layer}" + path[1])[:, d : 2*d].detach()
-        elif attn_type == 'gpt-neox':
-            Wq = get_nested_attr(model, path[0] + f"{layer}" + path[1])[ : d, :].detach()
-            Wk = get_nested_attr(model, path[0] + f"{layer}" + path[1])[d : 2*d, :].detach()
-        elif attn_type == 'grouped-attention':
-            Wq = get_nested_attr(model, path[0] + f"{layer}" + path[1]).T.detach()
-            Wk = get_nested_attr(model, path[0] + f"{layer}" + path[2]).T.detach()
-            Wk = Wk.view(Wk.shape[0], dh, Wk.shape[1] // dh)
-            repeat_factor = (Wq.shape[0] // dh) // Wk.shape[-1]
-            Wk= Wk.repeat_interleave(repeat_factor, dim = 0) 
-            Wk = Wk.view(Wq.shape[0], Wq.shape[0])
-        else:
-            Wq = get_nested_attr(model, path[0] + f"{layer}" + path[1]).T.detach()
-            Wk = get_nested_attr(model, path[0] + f"{layer}" + path[2]).T.detach()
+    d = config.hidden_size
+    dh = config.hidden_size // config.num_attention_heads
 
-        return Wq @ Wk.T
+    if attn_type == 'GPT':
+        Wq = get_nested_attr(model, path[0] + f"{layer}" + path[1])[:,  : d].detach()
+        Wk = get_nested_attr(model, path[0] + f"{layer}" + path[1])[:, d : 2*d].detach()
+    elif attn_type == 'gpt-neox':
+        Wq = get_nested_attr(model, path[0] + f"{layer}" + path[1])[ : d, :].detach()
+        Wk = get_nested_attr(model, path[0] + f"{layer}" + path[1])[d : 2*d, :].detach()
+    elif attn_type == 'grouped-attention':
+        Wq = get_nested_attr(model, path[0] + f"{layer}" + path[1]).T.detach()
+        Wk = get_nested_attr(model, path[0] + f"{layer}" + path[2]).T.detach()
+        Wk = Wk.view(Wk.shape[0], dh, Wk.shape[1] // dh)
+        repeat_factor = (Wq.shape[0] // dh) // Wk.shape[-1]
+        Wk= Wk.repeat_interleave(repeat_factor, dim = 0) 
+        Wk = Wk.view(Wq.shape[0], Wq.shape[0])
+    else:
+        Wq = get_nested_attr(model, path[0] + f"{layer}" + path[1]).T.detach()
+        Wk = get_nested_attr(model, path[0] + f"{layer}" + path[2]).T.detach()
+
+    return Wq @ Wk.T
+
+def get_M_checkpoints(model: str, path: str, layer: int):
+
+    Wq = get_nested_attr(model, path[0] + f"{layer}" + path[1]).T.detach()
+    Wk = get_nested_attr(model, path[0] + f"{layer}" + path[2]).T.detach()
+
+    return Wq @ Wk.T
 
 def get_nested_attr(obj, attr_path):
     """
@@ -224,6 +231,52 @@ def create_dict(model_family: str, model_name: str):
     else: models = {}
 
     return models, dir
+
+def list_all_directories(path: str):
+    """
+    Takes a path as input, goes through all directories inside that path,
+    and returns a list of strings where each element is the name of every directory in the path.
+
+    Parameters:
+        path (str): The path to traverse.
+
+    Returns:
+        list: A sorted list of directory names in natural (human-readable) order.
+    """
+    def natural_sort_key(s):
+        import re
+        return [int(text) if text.isdigit() else text.lower() for text in re.split('(\d+)', s)]
+
+    directory_names = []
+
+    for root, dirs, files in os.walk(path):
+        directory_names.extend(dirs)
+
+    return sorted(directory_names, key = natural_sort_key)
+
+def get_dir(name: str):
+    """
+    Navigates backward from the current directory until the "attention-geometry" directory is found,
+    then constructs and returns the path to the "attention-geometry/_data/custom-models/{name}/training_output/" directory.
+
+    Parameters:
+        name (str): The name of the custom model directory.
+
+    Returns:
+        str: The path to the training output directory.
+
+    Raises:
+        FileNotFoundError: If the "attention-geometry" directory is not found.
+    """
+    current_dir = os.getcwd()
+    while not os.path.isdir(os.path.join(current_dir, "attention-geometry")):
+        current_dir = os.path.abspath(os.path.join(current_dir, "../"))
+        if current_dir == "/":
+            raise FileNotFoundError("The directory 'attention-geometry' could not be found.")
+    dir = os.path.join(current_dir, "attention-geometry", "_data", "custom-models", name, "training_output")
+    os.makedirs(dir, exist_ok=True)
+
+    return dir
 
 ### maybe all of this is not needed anymore 
 def get_interpolation(data):
