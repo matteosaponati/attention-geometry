@@ -1,10 +1,11 @@
 import numpy as np 
 import torch
 import sys
-from .funs import get_M_shard, get_M_fullmodel
+from .funs import get_M_checkpoints, get_M_shard, get_M_fullmodel
 
 def get_scores(models: dict,
                model_name: str, model, config, path: list,
+               custom_checkpoint: bool = False,
                download_model: bool = True,
                attn_type: str = "BERT") -> np.ndarray:
     """
@@ -34,9 +35,12 @@ def get_scores(models: dict,
         progress = (layer + 1) / l * 100
         sys.stdout.write(f"\r{int(progress):3}% processing layer {layer + 1}/{l}")
         sys.stdout.flush()
-        
-        if download_model == True: M = get_M_fullmodel(model, config, path, layer, attn_type)
-        else: M = get_M_shard(model_name, config, path, layer, attn_type)
+
+        if custom_checkpoint == True:
+            M = get_M_checkpoints(model, path, layer)
+        else:
+            if download_model == True: M = get_M_fullmodel(model, config, path, layer, attn_type)
+            else: M = get_M_shard(model_name, config, path, layer, attn_type)
         scores_symmetry[layer] = symmetry_score(M)
         scores_directionality[layer] = directionality_score(M)
 
@@ -67,18 +71,11 @@ def directionality_score(A, num_std: int = 2):
 
     row_threshold = row_norms.mean().item() + num_std * row_norms.std().item()
     col_threshold = column_norms.mean().item() + num_std * column_norms.std().item()
-    # row_outliers = np.sum(row_norms > row_threshold)
-    # col_outliers = np.sum(column_norms > col_threshold)
-
     row_excess = torch.sum((row_norms[row_norms > row_threshold] - row_threshold))
     col_excess = torch.sum((column_norms[column_norms > col_threshold] - col_threshold))
     
     denom_excess = row_excess + col_excess
     if denom_excess == 0: score = 0.0
     else: score = (col_excess - row_excess) / denom_excess
-    
-    # denom = row_outliers + col_outliers
-    # if denom == 0: score = 0.0
-    # else: score = (row_outliers - col_outliers) / denom
     
     return score
