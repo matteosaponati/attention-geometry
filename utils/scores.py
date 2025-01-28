@@ -66,15 +66,15 @@ def directionality_score(A, num_std: int = 2):
     and computes the ratio of the norms.
     """
 
-    row_norms = torch.norm(A, dim=1)  # row norms
-    column_norms = torch.norm(A, dim=0)  # column norms
+    row_norms = torch.norm(A, dim = 1)  # row norms
+    column_norms = torch.norm(A, dim = 0)  # column norms
 
     row_threshold = row_norms.mean().item() + num_std * row_norms.std().item()
     col_threshold = column_norms.mean().item() + num_std * column_norms.std().item()
     row_excess = torch.sum((row_norms[row_norms > row_threshold] - row_threshold))
     col_excess = torch.sum((column_norms[column_norms > col_threshold] - col_threshold))
     
-    denom_excess = row_excess + col_excess
+    denom_excess =  col_excess + row_excess
     if denom_excess == 0: score = 0.0
     else: score = (col_excess - row_excess) / denom_excess
     
