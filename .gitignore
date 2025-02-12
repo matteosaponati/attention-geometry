@@ -2,7 +2,7 @@
 figures
 _test
 _test-notebooks
-_data
+_data/pascal-data
 _get_wandb_data
 _attention_geometry.egg-info
 _attention_geometry.egg-info/SOURCES.txt
