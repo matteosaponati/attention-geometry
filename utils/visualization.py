@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.colors import LinearSegmentedColormap
 
-def plot_median_scores(models, color = 'purple', mode = 'symmetry', alpha = 1.):
+def plot_scores_scatter(models, color = 'purple', mode = 'symmetry', alpha = 1.):
     """
-    plots median scores with error bars for models based on symmetry or directionality
+    scatter plot of median scores and inter-quartile error bars
 
     parameters:
         models: dictionary containing model data, including scores and parameter counts
@@ -35,7 +35,7 @@ def plot_median_scores(models, color = 'purple', mode = 'symmetry', alpha = 1.):
         
 def plot_scores(models, color = 'purple', mode = 'symmetry', alpha = 1.):
     """
-    plots median scores with error bars for models based on symmetry or directionality
+    line plot of median scores and inter-quartile error bars
 
     parameters:
         models: dictionary containing model data, including scores and parameter counts
@@ -66,7 +66,7 @@ def plot_scores(models, color = 'purple', mode = 'symmetry', alpha = 1.):
 
 def plot_scores_layers(models, color = 'purple', mode = 'symmetry', alpha = 1.):
     """
-    plots median scores with error bars for models based on symmetry or directionality
+    line plot (across layers of a given model) of median scores
 
     parameters:
         models: dictionary containing model data, including scores and parameter counts
@@ -82,8 +82,6 @@ def plot_scores_layers(models, color = 'purple', mode = 'symmetry', alpha = 1.):
 
     checkpoints = len(models)
     scores = np.zeros((layers, checkpoints))
-    score_q1 = np.zeros((layers, checkpoints))
-    score_q2 = np.zeros((layers, checkpoints))
     c = generate_color_list(layers, cmap = 'cividis')
 
     for idx, key in enumerate(list(models.keys())):
