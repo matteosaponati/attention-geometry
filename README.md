@@ -3,7 +3,7 @@
 
 # Training Custom Models
 
-*Please note that this is a cleanup version from the repository used for the experiments in the paper. Therefore, the results might slightly differ. If you notice bugs or want to reproduce the results exactly as reported in the paper, please get in touch with sage@zhaw.ch (he can give you access to the original code). If you are interested in a detail log of the training metrics, please have a look at https://wandb.ai/sagerpascal/symmetric-attention-from-scratch-final-2.*
+*Please note that this is a cleanup version from the repository used for the experiments in the paper. Therefore, the results might slightly differ. If you notice bugs or want to reproduce the results exactly as reported in the paper, please get in touch with sage@zhaw.ch (he can give you access to the original code). If you are interested in a detail log of the training metrics, please have a look at [wandb](https://wandb.ai/sagerpascal/attention-geometry/).*
 
 
 ## Environment Variables
