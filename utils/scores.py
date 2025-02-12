@@ -17,7 +17,8 @@ def get_scores(models: dict,
         model: the model object to analyze
         config: configuration object with model parameters such as the number of hidden layers
         path: list specifying the nested attribute path to the layer weights
-        download_model: boolean indicating whether to calculate scores from a full model or a shard, default is True
+        custom_checkpoint: flag variable indicating whether to calculate scores from custom models or pretrained models
+        download_model: flag variable indicating whether to calculate scores from a full model or a shard, default is True
         attn_type: string specifying the attention type ('BERT', 'GPT', etc.), default is 'BERT'
 
     returns:
@@ -61,13 +62,14 @@ def symmetry_score(A):
     return score
 
 def directionality_score(A, num_std: int = 2):
-    """ Takes a square matrix A, computes its symmetric component SYM (time complexity O(d)),
-    computes the square norm of SYM and A (sum of the square of matrix entries), 
-    and computes the ratio of the norms.
+    """ Takes a square matrix A, computes the norm of rows and columns,
+    determines a threshold given by the parameter num_std, and
+    computes to sum of rows and column norms that exceed the given threshold,
+    and compute the normalized difference of these two sums.
     """
 
-    row_norms = torch.norm(A, dim = 1)  # row norms
-    column_norms = torch.norm(A, dim = 0)  # column norms
+    row_norms = torch.norm(A, dim = 1) 
+    column_norms = torch.norm(A, dim = 0) 
 
     row_threshold = row_norms.mean().item() + num_std * row_norms.std().item()
     col_threshold = column_norms.mean().item() + num_std * column_norms.std().item()
