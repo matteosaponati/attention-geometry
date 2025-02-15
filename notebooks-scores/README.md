@@ -15,7 +15,7 @@
                     model_name, model, config,
                     path, 
                     custom_checkpoint = False, download_model = True,
-                    attn_type = "BERT")`
+                    attn_type = "BERT")`.
 The function `get_scores` takes the dictionary as input and gives it back as output with the new model as a new key: `custom_checkpoint` is True if working with custom models, `download_model` is True if you want to download the full model and compute the scores and is False if you want to compute the scores without donwloading the model (necessary for big models), `attn_type` defines how to extract Wq and Wk from the model. 
 
 5. After computing the scores from all models in the family, save the dictionary. Example: `with open(dir, 'wb') as file: pickle.dump(models, file)` 
