@@ -139,6 +139,17 @@ def get_M_shard(model_name: str, config, path: str, layer: int,
         Wk= Wk.repeat_interleave(repeat_factor, dim = 0) 
         Wk = Wk.view(Wq.shape[0], Wq.shape[0])
 
+    elif attn_type == 'deepseek':
+        Wq_path = path[0] + f"{layer}" + ".self_attn.q_a_proj.weight"
+        Wkv_path = path[0] + f"{layer}" + ".self_attn.kv_a_proj_with_mqa.weight"
+        Wq  = get_param(model_name, files, shard_format, index_file_name, Wq_path).detach()
+        Wkv = get_param(model_name, files, shard_format, index_file_name, Wkv_path).detach()
+        Wq = Wq.T
+        half = Wkv.shape[0] // 2
+        Wk   = Wkv[:half, :] 
+        Wk   = Wk.T       
+        Wq = Wq[:, :288] 
+
     else:
         Wq_path = path[0] + f"{layer}" + path[1]
         Wk_path = path[0] + f"{layer}" + path[2]
