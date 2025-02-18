@@ -3,9 +3,9 @@
 
 This is a repository for the paper:
 <br/><br/>
-"*The underlying structures of self-attention: symmetry, directionality, and emergent dynamics in Transformer training*", M Saponati, P Sager, PV Aceituno, T Staldemann, B Grewe. 
-ArXiv (2025). <br/>
-[link to the arxiv]
+"*The underlying structures of self-attention: symmetry, directionality, and emergent dynamics in Transformer training*", Saponati, M., Sager, P. J., Aceituno, P. V., Stadelmann, T., Grewe, B. F. (2025). arXiv preprint arXiv:2502.10927.
+<br/>
+https://doi.org/10.48550/arXiv.2502.10927
 
 ## Table of Contents
 
@@ -104,7 +104,14 @@ python train.py --train wiki --model-save models/wiki --model_name bert_small --
 # Citation
 citation.<br/>
 ```
-@article{
+@misc{saponatiUnderlyingStructures2025,
+	title        = {{The underlying structures of self-attention: symmetry, directionality, and emergent dynamics in Transformer training}},
+	author       = {Saponati, Matteo and Sager, Pascal and Aceituno, Pau Vilimelis and Staldemann, Thilo and Grewe, Benjamin},
+	year         = 2024,
+	month        = feb,
+	publisher    = {arXiv},
+	doi          = {10.48550/arXiv.2502.10927},
+	note         = {arXiv:2502.10927}
 }
 ```
 
