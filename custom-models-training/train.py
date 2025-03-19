@@ -30,6 +30,7 @@ WANDB_PROJECT_NAME = "attention-geometry-training"
 tmp_path = "/scratch"
 
 os.environ["WANDB_PROJECT"] = WANDB_PROJECT_NAME
+os.environ["WANDB_LOG_MODEL"] = "end"
 os.environ["WANDB_DIR"] = os.path.abspath(tmp_path)
 os.environ["HF_DATASETS_CACHE"] = os.path.abspath(f"{tmp_path}/.cache/huggingface/datasets")
 huggingface_hub.login(os.getenv("HF_TOKEN"))
@@ -100,6 +101,7 @@ def train_from_scratch(
         model_name: str,
         train_mode: Literal['encoder', 'decoder'],
         init_symmetric: str = None,
+        load_checkpoint: str = None,
 ):
     if not model_dir.exists():
         model_dir.mkdir(parents=True)
@@ -195,13 +197,15 @@ def train_from_scratch(
         log_output.mkdir(parents=True)
 
     run_name = f"{model_name}--{train_mode_name}--{train_data.name}{mode}"
-    run_id = None
+    run_id = os.getenv("WANDB_RUN_ID")
+
+    print("WARNING: run_id is", run_id, "Trying to continue WANDB run", load_checkpoint is not None)
 
     with wandb.init(
             project=os.environ["WANDB_PROJECT"],
             name=run_name,
             id=run_id,
-            resume='must' if run_id is not None else 'never',
+            resume='must' if run_id is not None and load_checkpoint is not None else 'never',
             fork_from=None,
             # resume_from=f"{run_id}?_step={step}" if run_id is not None else None,
     ) as run:
@@ -211,15 +215,15 @@ def train_from_scratch(
             # logging_dir=str(log_output),
             # num_train_epochs=10 if train_data.name == "wikipedia" else 100,
             max_steps=200_000,
-            per_device_train_batch_size=32,
-            per_device_eval_batch_size=32,
-            gradient_accumulation_steps=8,
+            per_device_train_batch_size=32*4, # or use 32
+            per_device_eval_batch_size=32*4, # or use 32
+            gradient_accumulation_steps=8//4, # or use 8
             warmup_steps=200,
             weight_decay=0.01,
             learning_rate=5e-5,
             save_strategy="steps",
             save_steps=1_000,
-            save_total_limit=201,
+            save_total_limit=1, # or increase to e.g., 200 to save and store every 1000 steps
             evaluation_strategy="no",
             report_to="wandb",
             fp16=True,
@@ -238,7 +242,7 @@ def train_from_scratch(
         wandb_sym_callback = WandbSymmetryCallback(trainer)
         trainer.add_callback(wandb_sym_callback)
 
-        trainer.train()
+        trainer.train(resume_from_checkpoint=load_checkpoint)
 
         trainer.save_model(output_dir=str(model_dir))
         tokenizer.save_pretrained(save_directory=str(model_dir))
@@ -252,6 +256,7 @@ def main(
         model_name: str,
         train_mode: Literal['encoder', 'decoder'],
         init_symmetric: str = None,
+        load_checkpoint: str = None,
 ):
     if train_path.lower() == 'wiki':
         wiki_data = load_dataset("wikipedia", "20220301.en", num_proc=8)
@@ -283,6 +288,7 @@ def main(
             model_name=model_name,
             train_mode=train_mode,
             init_symmetric=init_symmetric,
+            load_checkpoint=load_checkpoint,
         )
 
 
@@ -311,6 +317,11 @@ if __name__ == "__main__":
                         default=None,
                         choices=[None, 'symmetric-init'],
                         help="How to initialize the model")
+    parser.add_argument("--checkpoint",
+                        type=str,
+                        default=None,
+                        help="checkpoint to load"
+                        )
     args = parser.parse_args()
 
     main(
@@ -319,4 +330,5 @@ if __name__ == "__main__":
         model_name=args.model_name,
         train_mode=args.mode,
         init_symmetric=args.init,
+        load_checkpoint=args.checkpoint,
     )
