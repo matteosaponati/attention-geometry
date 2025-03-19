@@ -1,30 +1,66 @@
-# attention-geometry
+#
+<h1 align="center">The underlying structures of self-attention</h1>
+
+This is a repository for the paper:
+<br/><br/>
+"*The underlying structures of self-attention: symmetry, directionality, and emergent dynamics in Transformer training*", Saponati, M., Sager, P. J., Aceituno, P. V., Stadelmann, T., Grewe, B. F. (2025). arXiv preprint arXiv:2502.10927.
+<br/>
+https://doi.org/10.48550/arXiv.2502.10927
+
+## Table of Contents
+
+1. [Installation](#Installation)
+2. [Structure](#Structure)
+3. [Training custom models](#Training-custom-models)
+4. [Citation](#citation)
+5.  [License](#license)
+
+-------------------------
+
+# Installation
+
+The current version of the scripts has been tested with Python 3.12.3 and Pytorch 2.5.1. All the dependencies are listed in the environment.yaml file. 
+The project has a pip-installable package. How to set it up:
+
+- `git clone` the repository 
+- `pip install -e . `
+
+# Structure
+
+This repo is structured as follows:
+
++ `./custom-training-models/` contains the code necessary to train the custom models (see below for a step-by-step guide).
++ `./notebooks-figures-tables/` contains the Jupyter notebooks to reproduce the figures and tables of the paper.
++ `./notebook-scores/` contains the Jupyter notebooks to calculate and save the directionality and symmetry scores for every model we considered.
++ `./utils/` contains the Python modules for downloading the pretrained models from Huggingface, calculating the directionality and symmetry score, and visualizing the results.
+
++ `environment.yaml` configuration file with all the dependencies listed
++ `setup.py` python script for installation with pip
+
+# Training-custom-models
+
+*Please note that this is a cleanup version from the repository used for the experiments in the paper. Therefore, the results might slightly differ. If you notice bugs or want to reproduce the results exactly as reported in the paper, please get in touch with sage@zhaw.ch. If you are interested in a detail log of the training metrics, please have a look at [wandb](https://wandb.ai/sagerpascal/attention-geometry/).*
 
 
-# Training Custom Models
+### Environment Variables
 
-*Please note that this is a cleanup version from the repository used for the experiments in the paper. Therefore, the results might slightly differ. If you notice bugs or want to reproduce the results exactly as reported in the paper, please get in touch with sage@zhaw.ch (he can give you access to the original code). If you are interested in a detail log of the training metrics, please have a look at [wandb](https://wandb.ai/sagerpascal/attention-geometry/).*
-
-
-## Environment Variables
-
-Please create a `.env` file in the root directory (from where you start the code) with the following content:
+Create an `.env` file in the root directory (from where you start the code) with the following content:
 
 ```bash
 HF_TOKEN=<your-huggingface-token>
 WANDB_API_KEY=<your_api_key>
 ```
 
-## Install dependencies
+### Install dependencies
 
-Please install the required dependencies by running the following command:
+Iinstall the required dependencies by running the following command:
 
 ```bash
 pip install -r requirements.txt
 ```
 
 
-## Data
+### Data
 
 We use three datasets for training our models:
 
@@ -36,7 +72,7 @@ While we access the RedPajama and Wikipedia dataset directly from Huggingface, t
 
 - https://www.kaggle.com/competitions/jigsaw-toxic-comment-classification-challenge/overview
 
-After downloading the dataset, please extract the files and then run the following script:
+After downloading the dataset, extract the files and then run the following script:
 
 ```
 python prepare_jigsaw.py --raw <path-to-raw-data> --train <path-to-train-folder> --test <path-to-test-folder>
@@ -44,7 +80,7 @@ python prepare_jigsaw.py --raw <path-to-raw-data> --train <path-to-train-folder>
 
 The other dataset do not require any additional preparation.
 
-## Training
+### Training
 
 You can run the training script directly:
 
@@ -52,7 +88,7 @@ You can run the training script directly:
 python train.py --train <dataset> --model-save <save-path> --model_name <model-name> --mode <mode> --init <init>
 ```
 
-- `--train` please set this to either `<jigsaw-data-path>`, `red_pajama`, or `wiki` to train the model on the respective dataset.
+- `--train` set this to either `<jigsaw-data-path>`, `red_pajama`, or `wiki` to train the model on the respective dataset.
 - `--model-save` the path where the model should be saved.
 - `--model_name` the name of the model to be trained; either 'bert_small' or 'bert'
 - `--mode` the mode to train the model in; either 'encoder' or 'decoder'
@@ -65,3 +101,33 @@ python train.py --train wiki --model-save models/wiki --model_name bert_small --
 ```
 
 
+# Citation
+citation.<br/>
+```
+@misc{saponatiUnderlyingStructures2025,
+	title        = {{The underlying structures of self-attention: symmetry, directionality, and emergent dynamics in Transformer training}},
+	author       = {Saponati, Matteo and Sager, Pascal and Aceituno, Pau Vilimelis and Staldemann, Thilo and Grewe, Benjamin},
+	year         = 2024,
+	month        = feb,
+	publisher    = {arXiv},
+	doi          = {10.48550/arXiv.2502.10927},
+	note         = {arXiv:2502.10927}
+}
+```
+
+
+# License
+
+MIT License
+
+Copyright (c) 2025 Matteo Saponati
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

@@ -139,6 +139,17 @@ def get_M_shard(model_name: str, config, path: str, layer: int,
         Wk= Wk.repeat_interleave(repeat_factor, dim = 0) 
         Wk = Wk.view(Wq.shape[0], Wq.shape[0])
 
+    elif attn_type == 'deepseek':
+        Wq_path = path[0] + f"{layer}" + ".self_attn.q_a_proj.weight"
+        Wkv_path = path[0] + f"{layer}" + ".self_attn.kv_a_proj_with_mqa.weight"
+        Wq  = get_param(model_name, files, shard_format, index_file_name, Wq_path).detach()
+        Wkv = get_param(model_name, files, shard_format, index_file_name, Wkv_path).detach()
+        Wq = Wq.T
+        half = Wkv.shape[0] // 2
+        Wk   = Wkv[:half, :] 
+        Wk   = Wk.T       
+        Wq = Wq[:, :288] 
+
     else:
         Wq_path = path[0] + f"{layer}" + path[1]
         Wk_path = path[0] + f"{layer}" + path[2]
@@ -149,6 +160,18 @@ def get_M_shard(model_name: str, config, path: str, layer: int,
 
 def get_M_fullmodel(model, config, path: str, layer: int, 
                 attn_type: str = 'BERT'):
+    """
+    computes the matrix product of query and key weight matrices for a given attention layer.
+
+    args:
+        model (str): name or identifier of the model repository.
+        config: model configuration containing hidden size and number of attention heads.
+        path (str): base path for locating parameters in the model.
+        layer (int): the attention layer number.
+        attn_type (str, optional): type of attention mechanism (default: 'BERT').
+    returns:
+        torch.Tensor: matrix product of Wq and Wk for the specified layer and attention type.
+    """
         
     d = config.hidden_size
     dh = config.hidden_size // config.num_attention_heads
@@ -173,6 +196,16 @@ def get_M_fullmodel(model, config, path: str, layer: int,
     return Wq @ Wk.T
 
 def get_M_checkpoints(model: str, path: str, layer: int):
+    """
+    computes the matrix product of query and key weight matrices for a given attention layer.
+
+    args:
+        model (str): name or identifier of the model repository.
+        path (str): base path for locating parameters in the model.
+        layer (int): the attention layer number.
+    returns:
+        torch.Tensor: matrix product of Wq and Wk for the specified layer.
+    """
 
     Wq = get_nested_attr(model, path[0] + f"{layer}" + path[1]).T.detach()
     Wk = get_nested_attr(model, path[0] + f"{layer}" + path[2]).T.detach()
@@ -234,8 +267,8 @@ def create_dict(model_family: str, model_name: str):
 
 def list_all_directories(path: str):
     """
-    Takes a path as input, goes through all directories inside that path,
-    and returns a list of strings where each element is the name of every directory in the path.
+    takes a path as input, goes through all directories inside that path, and 
+    returns a list of strings where each element is the name of every directory in the path.
 
     Parameters:
         path (str): The path to traverse.
@@ -256,7 +289,7 @@ def list_all_directories(path: str):
 
 def get_dir(name: str):
     """
-    Navigates backward from the current directory until the "attention-geometry" directory is found,
+    navigates backward from the current directory until the "attention-geometry" directory is found,
     then constructs and returns the path to the "attention-geometry/_data/custom-models/{name}/training_output/" directory.
 
     Parameters:
@@ -277,35 +310,3 @@ def get_dir(name: str):
     os.makedirs(dir, exist_ok=True)
 
     return dir
-
-### maybe all of this is not needed anymore 
-def get_interpolation(data):
-
-    data = data.to_numpy()
-    x = np.arange(data.size)
-    data = np.interp(x, x[~np.isnan(data)], 
-                                  data[~np.isnan(data)])
-
-    return data
-
-def get_symmetry_training(data, layers, heads, epochs):
-    
-    scores = np.zeros((layers, heads, epochs))
-    for l in range(layers):
-        for h in range(heads):
-            scores[l, h, :] = np.array(get_interpolation(data[f'Layer {l}/Head {h} Symmetry']))
-    
-    return scores
-
-def get_symmetry_layers_heads(data, layers, heads):
-    return [(get_interpolation(data[f'Layer {l}/Head {h} Symmetry']))[-1] for l in range(layers) for h in range(heads)]
-
-def get_specs(data):
-    return [get_interpolation(data['_step']),
-            get_interpolation(data['train/global_step']),
-            get_interpolation(data['Mean Symmetry']),
-            get_interpolation(data['Min Symmetry']),
-            get_interpolation(data['Max Symmetry']),
-            get_interpolation(data['Median Symmetry']),
-            get_interpolation(data['Variance Symmetry']),
-            get_interpolation(data['train/loss'])]
