@@ -26,14 +26,21 @@ load_dotenv()
 
 from datasets import IterableDataset
 
-WANDB_PROJECT_NAME = "attention-geometry-training"
-tmp_path = "/scratch"
 
-os.environ["WANDB_PROJECT"] = WANDB_PROJECT_NAME
+
+tmp_path = os.getenv("TMP_PATH") # "/scratch"
+hf_token = os.getenv("HF_TOKEN")
+
+assert hf_token is not None, "HF_TOKEN must be set"
+assert tmp_path is not None, "TMP_PATH must be set"
+assert os.getenv("WANDB_RUN_ID") is not None, "WANDB_RUN_ID must be set"
+assert os.getenv("WANDB_PROJECT") is not None, "WANDB_PROJECT must be set"
+assert os.getenv("WANDB_RUN_ID") is not None, "WANDB_RUN_ID must be set"
+
 os.environ["WANDB_LOG_MODEL"] = "end"
 os.environ["WANDB_DIR"] = os.path.abspath(tmp_path)
 os.environ["HF_DATASETS_CACHE"] = os.path.abspath(f"{tmp_path}/.cache/huggingface/datasets")
-huggingface_hub.login(os.getenv("HF_TOKEN"))
+huggingface_hub.login(hf_token)
 
 transformers.set_seed(0)
 
