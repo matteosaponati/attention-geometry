@@ -231,6 +231,10 @@ def train_from_scratch(
                 # resume_from=f"{run_id}?_step={step}" if run_id is not None else None,
         )
 
+    while wandb.run is None:
+        print("Rank", rank, "waiting for WANDB run")
+        time.sleep(10)
+
     args = TrainingArguments(
         output_dir=str(training_output),
         # logging_dir=str(log_output),
