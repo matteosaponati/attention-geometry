@@ -346,9 +346,10 @@ if __name__ == "__main__":
                         type=int,
                         default=8,
                         )
-    parser.add_argument("--rank",
+    parser.add_argument("--local-rank",
                         type=int,
                         default=0,
+                        dest='rank',
                         )
     parser.add_argument("--init",
                         type=str,
