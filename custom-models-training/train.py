@@ -8,6 +8,7 @@ from typing import Literal
 
 import huggingface_hub
 import torch
+import time
 import transformers
 import wandb
 from datasets import load_dataset
@@ -15,7 +16,6 @@ from dotenv import load_dotenv
 from custom_attention import BertSelfAttentionSymmetricInit
 from wandb_callback import WandbSymmetryCallback
 from torch.utils.data import Dataset
-import torch.distributed as dist
 from transformers import (AutoConfig, AutoTokenizer, BertForMaskedLM,
                           BertLMHeadModel, DataCollatorForLanguageModeling, Trainer,
                           TrainingArguments)
@@ -46,8 +46,6 @@ transformers.set_seed(0)
 rank = int(os.environ.get("RANK", 0))
 local_rank = int(os.environ.get("LOCAL_RANK", 0))
 world_size = int(os.environ.get("WORLD_SIZE", 1))
-
-dist.init_process_group("nccl", rank=rank, world_size=world_size)
 
 print(f"Hello from rank {rank}")
 
@@ -193,7 +191,9 @@ def train_from_scratch(
                     lambda x: tokenizer([" ".join(x) for x in x["text"]], truncation=True, padding='max_length', max_length=512), batched=True, num_proc=8, )
                 tokenized_train_data_texts.save_to_disk(store_path)
 
-            dist.barrier()
+            # dist.barrier()
+            while not Path(store_path).exists():
+                time.sleep(30)
             tokenized_train_data_texts = train_data_texts.load_from_disk(store_path)
 
             train = tokenized_train_data_texts
@@ -231,10 +231,6 @@ def train_from_scratch(
                 # resume_from=f"{run_id}?_step={step}" if run_id is not None else None,
         )
 
-    print("Rank", rank, "waiting for wandb to start")
-    dist.barrier()
-    print("Rank", rank, "wandb started")
-
     args = TrainingArguments(
         output_dir=str(training_output),
         # logging_dir=str(log_output),
@@ -258,8 +254,6 @@ def train_from_scratch(
     )
 
 
-    print("Rank", rank, "getting ready for training...")
-    dist.barrier()
     print("Rank", rank, "start training")
 
     trainer = Trainer(
