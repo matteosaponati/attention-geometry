@@ -108,8 +108,9 @@ def train_from_scratch(
         gradient_accumulation_steps: int,
         init_symmetric: str = None,
         load_checkpoint: str = None,
+        rank: int = 0
 ):
-    if dist.get_rank() == 0:
+    if rank == 0:
         wandb.login()
 
         if not model_dir.exists():
@@ -156,7 +157,7 @@ def train_from_scratch(
         else:
             raise NotImplementedError()
 
-    if dist.get_rank() == 0:
+    if rank == 0:
         print(model)
 
     if tokenizer.model_max_length > 10000:
@@ -178,7 +179,7 @@ def train_from_scratch(
                 lambda x: tokenizer([" ".join(x) for x in x["raw_content"]], truncation=True, padding='max_length', max_length=512), batched=True)
 
         else:
-            if not Path(store_path).exists() and dist.get_rank() == 0:
+            if not Path(store_path).exists() and rank == 0:
                 Path(store_path).mkdir(parents=True)
                 tokenized_train_data_texts = train_data_texts.map(
                     lambda x: tokenizer([" ".join(x) for x in x["text"]], truncation=True, padding='max_length', max_length=512), batched=True, num_proc=8, )
@@ -197,7 +198,7 @@ def train_from_scratch(
     training_output = model_dir / f"{model_name}-{train_mode}-{train_data.name}{mode}" / "training_output" / os.getenv("WANDB_RUN_ID")
     log_output = model_dir / f"{model_name}-{train_mode}-{train_data.name}{mode}" / "training_logs" / os.getenv("WANDB_RUN_ID")
 
-    if dist.get_rank() == 0:
+    if rank == 0:
         print("save training_output to", training_output)
         print("save log_output to", log_output)
 
@@ -236,7 +237,7 @@ def train_from_scratch(
         ignore_data_skip=train_data.name == "red_pajama",
     )
 
-    if dist.get_rank() == 0:
+    if rank == 0:
         print("WARNING: run_id is", run_id, "Trying to continue WANDB run", load_checkpoint is not None)
 
         wandb.init(
@@ -262,7 +263,7 @@ def train_from_scratch(
 
     trainer.train(resume_from_checkpoint=load_checkpoint)
 
-    if dist.get_rank() == 0:
+    if rank == 0:
         trainer.save_model(output_dir=str(model_dir))
         tokenizer.save_pretrained(save_directory=str(model_dir))
 
@@ -278,6 +279,7 @@ def main(
         gradient_accumulation_steps: int,
         init_symmetric: str = None,
         load_checkpoint: str = None,
+        rank: int = 0
 ):
     if train_path.lower() == 'wiki':
         wiki_data = load_dataset("wikipedia", "20220301.en", num_proc=8)
@@ -312,6 +314,7 @@ def main(
             gradient_accumulation_steps=gradient_accumulation_steps,
             init_symmetric=init_symmetric,
             load_checkpoint=load_checkpoint,
+            rank=rank,
         )
 
 
@@ -343,6 +346,10 @@ if __name__ == "__main__":
                         type=int,
                         default=8,
                         )
+    parser.add_argument("--rank",
+                        type=int,
+                        default=0,
+                        )
     parser.add_argument("--init",
                         type=str,
                         default=None,
@@ -364,4 +371,5 @@ if __name__ == "__main__":
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         init_symmetric=args.init,
         load_checkpoint=args.checkpoint,
+        rank=args.rank
     )
