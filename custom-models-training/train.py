@@ -216,6 +216,21 @@ def train_from_scratch(
     run_name = f"{model_name}--{train_mode_name}--{train_data.name}{mode}"
     run_id = os.getenv("WANDB_RUN_ID")
 
+    if rank == 0:
+        print("WARNING: run_id is", run_id, "Trying to continue WANDB run", load_checkpoint is not None)
+
+        wandb.init(
+                project=os.environ["WANDB_PROJECT"],
+                name=run_name,
+                id=run_id,
+                resume='must' if run_id is not None and load_checkpoint is not None else "auto",
+                fork_from=None,
+                # resume_from=f"{run_id}?_step={step}" if run_id is not None else None,
+        )
+
+    print("Rank", rank, "waiting for wandb to start")
+    dist.barrier()
+    print("Rank", rank, "wandb started")
 
     args = TrainingArguments(
         output_dir=str(training_output),
@@ -239,21 +254,11 @@ def train_from_scratch(
         ignore_data_skip=train_data.name == "red_pajama",
     )
 
-    if rank == 0:
-        print("WARNING: run_id is", run_id, "Trying to continue WANDB run", load_checkpoint is not None)
 
-        wandb.init(
-                project=os.environ["WANDB_PROJECT"],
-                name=run_name,
-                id=run_id,
-                resume='must' if run_id is not None and load_checkpoint is not None else "auto",
-                fork_from=None,
-                # resume_from=f"{run_id}?_step={step}" if run_id is not None else None,
-        )
-
-
-    print("Rank", rank, "ready for training")
+    print("Rank", rank, "getting ready for training...")
     dist.barrier()
+    print("Rank", rank, "start training")
+
     trainer = Trainer(
         model=model,
         args=args,
