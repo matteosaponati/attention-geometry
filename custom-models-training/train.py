@@ -47,6 +47,8 @@ rank = int(os.environ.get("RANK", 0))
 local_rank = int(os.environ.get("LOCAL_RANK", 0))
 world_size = int(os.environ.get("WORLD_SIZE", 1))
 
+dist.init_process_group("gloo", rank=rank, world_size=world_size)
+
 print(f"Hello from rank {rank}")
 
 
@@ -115,6 +117,7 @@ def train_from_scratch(
         init_symmetric: str = None,
         load_checkpoint: str = None,
 ):
+
     if rank == 0:
         wandb.login()
 
