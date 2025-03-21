@@ -43,6 +43,12 @@ huggingface_hub.login(hf_token)
 
 transformers.set_seed(0)
 
+rank = int(os.environ.get("RANK", 0))
+local_rank = int(os.environ.get("LOCAL_RANK", 0))
+world_size = int(os.environ.get("WORLD_SIZE", 1))
+
+print(f"Hello from rank {rank}")
+
 
 def recursive_setattr(obj, attr, value):
     attr = attr.split('.', 1)
@@ -108,7 +114,6 @@ def train_from_scratch(
         gradient_accumulation_steps: int,
         init_symmetric: str = None,
         load_checkpoint: str = None,
-        rank: int = 0
 ):
     if rank == 0:
         wandb.login()
@@ -279,7 +284,6 @@ def main(
         gradient_accumulation_steps: int,
         init_symmetric: str = None,
         load_checkpoint: str = None,
-        rank: int = 0
 ):
     if train_path.lower() == 'wiki':
         wiki_data = load_dataset("wikipedia", "20220301.en", num_proc=8)
@@ -314,7 +318,6 @@ def main(
             gradient_accumulation_steps=gradient_accumulation_steps,
             init_symmetric=init_symmetric,
             load_checkpoint=load_checkpoint,
-            rank=rank,
         )
 
 
@@ -372,5 +375,4 @@ if __name__ == "__main__":
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         init_symmetric=args.init,
         load_checkpoint=args.checkpoint,
-        rank=args.rank
     )
