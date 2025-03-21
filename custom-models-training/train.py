@@ -207,9 +207,6 @@ def train_from_scratch(
         print("save training_output to", training_output)
         print("save log_output to", log_output)
 
-        print("save training_output to", training_output)
-        print("save log_output to", log_output)
-
         if not training_output.exists():
             training_output.mkdir(parents=True)
 
@@ -249,12 +246,13 @@ def train_from_scratch(
                 project=os.environ["WANDB_PROJECT"],
                 name=run_name,
                 id=run_id,
-                resume='must' if run_id is not None and load_checkpoint is not None else 'never',
+                resume='must' if run_id is not None and load_checkpoint is not None else "auto",
                 fork_from=None,
                 # resume_from=f"{run_id}?_step={step}" if run_id is not None else None,
         )
 
 
+    print("Rank", rank, "ready for training")
     dist.barrier()
     trainer = Trainer(
         model=model,
