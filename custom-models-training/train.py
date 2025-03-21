@@ -217,23 +217,6 @@ def train_from_scratch(
             log_output.mkdir(parents=True)
 
     run_name = f"{model_name}--{train_mode_name}--{train_data.name}{mode}"
-    run_id = os.getenv("WANDB_RUN_ID")
-
-    if rank == 0:
-        print("WARNING: run_id is", run_id, "Trying to continue WANDB run", load_checkpoint is not None)
-
-        wandb.init(
-                project=os.environ["WANDB_PROJECT"],
-                name=run_name,
-                id=run_id,
-                resume='must' if run_id is not None and load_checkpoint is not None else "auto",
-                fork_from=None,
-                # resume_from=f"{run_id}?_step={step}" if run_id is not None else None,
-        )
-
-    while wandb.run is None:
-        print("Rank", rank, "waiting for WANDB run")
-        time.sleep(10)
 
     args = TrainingArguments(
         output_dir=str(training_output),
