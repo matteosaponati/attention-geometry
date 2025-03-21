@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 from custom_attention import BertSelfAttentionSymmetricInit
 from wandb_callback import WandbSymmetryCallback
 from torch.utils.data import Dataset
+import torch.distributed as dist
 from transformers import (AutoConfig, AutoTokenizer, BertForMaskedLM,
                           BertLMHeadModel, DataCollatorForLanguageModeling, Trainer,
                           TrainingArguments)
@@ -25,8 +26,6 @@ from dataset import Sample, TrainDataset
 load_dotenv()
 
 from datasets import IterableDataset
-
-
 
 tmp_path = os.getenv("TMP_PATH") # "/scratch"
 hf_token = os.getenv("HF_TOKEN")
@@ -43,8 +42,6 @@ os.environ["HF_DATASETS_CACHE"] = os.path.abspath(f"{tmp_path}/.cache/huggingfac
 huggingface_hub.login(hf_token)
 
 transformers.set_seed(0)
-
-wandb.login()
 
 
 def recursive_setattr(obj, attr, value):
@@ -107,11 +104,16 @@ def train_from_scratch(
         train_data: TrainDataset,
         model_name: str,
         train_mode: Literal['encoder', 'decoder'],
+        device_batch_size: int,
+        gradient_accumulation_steps: int,
         init_symmetric: str = None,
         load_checkpoint: str = None,
 ):
-    if not model_dir.exists():
-        model_dir.mkdir(parents=True)
+    if dist.get_rank() == 0:
+        wandb.login()
+
+        if not model_dir.exists():
+            model_dir.mkdir(parents=True)
 
     if model_name.split("-")[0] == "bert_small":
         config = AutoConfig.from_pretrained('prajjwal1/bert-mini')
@@ -154,7 +156,8 @@ def train_from_scratch(
         else:
             raise NotImplementedError()
 
-    print(model)
+    if dist.get_rank() == 0:
+        print(model)
 
     if tokenizer.model_max_length > 10000:
         tokenizer.model_max_length = min(tokenizer.max_model_input_sizes.values())
@@ -172,18 +175,17 @@ def train_from_scratch(
         if isinstance(train_data_texts, IterableDataset):
 
             train = train_data_texts.map(
-                lambda x: tokenizer([" ".join(x) for x in x["raw_content"]], truncation=True, padding='max_length',
-                                    max_length=512), batched=True)
+                lambda x: tokenizer([" ".join(x) for x in x["raw_content"]], truncation=True, padding='max_length', max_length=512), batched=True)
 
         else:
-            if not Path(store_path).exists():
+            if not Path(store_path).exists() and dist.get_rank() == 0:
                 Path(store_path).mkdir(parents=True)
                 tokenized_train_data_texts = train_data_texts.map(
-                    lambda x: tokenizer([" ".join(x) for x in x["text"]], truncation=True, padding='max_length',
-                                        max_length=512), batched=True, num_proc=8, )
+                    lambda x: tokenizer([" ".join(x) for x in x["text"]], truncation=True, padding='max_length', max_length=512), batched=True, num_proc=8, )
                 tokenized_train_data_texts.save_to_disk(store_path)
-            else:
-                tokenized_train_data_texts = train_data_texts.load_from_disk(store_path)
+
+            dist.barrier()
+            tokenized_train_data_texts = train_data_texts.load_from_disk(store_path)
 
             train = tokenized_train_data_texts
 
@@ -191,70 +193,80 @@ def train_from_scratch(
     if init_symmetric is not None:
         mode = f"--{init_symmetric}"
 
-    training_output = model_dir / f"{model_name}-{train_mode}-{train_data.name}{mode}" / "training_output"
-    log_output = model_dir / f"{model_name}-{train_mode}-{train_data.name}{mode}" / "training_logs"
 
-    print("save training_output to", training_output)
-    print("save log_output to", log_output)
+    training_output = model_dir / f"{model_name}-{train_mode}-{train_data.name}{mode}" / "training_output" / os.getenv("WANDB_RUN_ID")
+    log_output = model_dir / f"{model_name}-{train_mode}-{train_data.name}{mode}" / "training_logs" / os.getenv("WANDB_RUN_ID")
 
-    if not training_output.exists():
-        training_output.mkdir(parents=True)
+    if dist.get_rank() == 0:
+        print("save training_output to", training_output)
+        print("save log_output to", log_output)
 
-    if not log_output.exists():
-        log_output.mkdir(parents=True)
+        print("save training_output to", training_output)
+        print("save log_output to", log_output)
+
+        if not training_output.exists():
+            training_output.mkdir(parents=True)
+
+        if not log_output.exists():
+            log_output.mkdir(parents=True)
 
     run_name = f"{model_name}--{train_mode_name}--{train_data.name}{mode}"
     run_id = os.getenv("WANDB_RUN_ID")
 
-    print("WARNING: run_id is", run_id, "Trying to continue WANDB run", load_checkpoint is not None)
 
-    with wandb.init(
-            project=os.environ["WANDB_PROJECT"],
-            name=run_name,
-            id=run_id,
-            resume='must' if run_id is not None and load_checkpoint is not None else 'never',
-            fork_from=None,
-            # resume_from=f"{run_id}?_step={step}" if run_id is not None else None,
-    ) as run:
+    args = TrainingArguments(
+        output_dir=str(training_output),
+        # logging_dir=str(log_output),
+        # num_train_epochs=10 if train_data.name == "wikipedia" else 100,
+        max_steps=200_000,
+        per_device_train_batch_size=device_batch_size,  # or use 32
+        per_device_eval_batch_size=device_batch_size,  # or use 32
+        gradient_accumulation_steps=gradient_accumulation_steps,  # or use 8
+        warmup_steps=200,
+        weight_decay=0.01,
+        learning_rate=5e-5,
+        save_strategy="steps",
+        save_steps=1_000,
+        save_total_limit=1,  # or increase to e.g., 200 to save and store every 1000 steps
+        evaluation_strategy="no",
+        report_to="wandb",
+        fp16=True,
+        logging_steps=200,
+        run_name=run_name,
+        ignore_data_skip=train_data.name == "red_pajama",
+    )
 
-        args = TrainingArguments(
-            output_dir=str(training_output),
-            # logging_dir=str(log_output),
-            # num_train_epochs=10 if train_data.name == "wikipedia" else 100,
-            max_steps=200_000,
-            per_device_train_batch_size=32*4, # or use 32
-            per_device_eval_batch_size=32*4, # or use 32
-            gradient_accumulation_steps=8//4, # or use 8
-            warmup_steps=200,
-            weight_decay=0.01,
-            learning_rate=5e-5,
-            save_strategy="steps",
-            save_steps=1_000,
-            save_total_limit=1, # or increase to e.g., 200 to save and store every 1000 steps
-            evaluation_strategy="no",
-            report_to="wandb",
-            fp16=True,
-            logging_steps=200,
-            run_name=run_name,
-            ignore_data_skip=train_data.name == "red_pajama",
+    if dist.get_rank() == 0:
+        print("WARNING: run_id is", run_id, "Trying to continue WANDB run", load_checkpoint is not None)
+
+        wandb.init(
+                project=os.environ["WANDB_PROJECT"],
+                name=run_name,
+                id=run_id,
+                resume='must' if run_id is not None and load_checkpoint is not None else 'never',
+                fork_from=None,
+                # resume_from=f"{run_id}?_step={step}" if run_id is not None else None,
         )
 
-        trainer = Trainer(
-            model=model,
-            args=args,
-            train_dataset=train,
-            data_collator=DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15),
-        )
 
-        wandb_sym_callback = WandbSymmetryCallback(trainer)
-        trainer.add_callback(wandb_sym_callback)
+    dist.barrier()
+    trainer = Trainer(
+        model=model,
+        args=args,
+        train_dataset=train,
+        data_collator=DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15),
+    )
 
-        trainer.train(resume_from_checkpoint=load_checkpoint)
+    wandb_sym_callback = WandbSymmetryCallback(trainer)
+    trainer.add_callback(wandb_sym_callback)
 
+    trainer.train(resume_from_checkpoint=load_checkpoint)
+
+    if dist.get_rank() == 0:
         trainer.save_model(output_dir=str(model_dir))
         tokenizer.save_pretrained(save_directory=str(model_dir))
 
-    wandb.finish()
+        wandb.finish()
 
 
 def main(
@@ -262,6 +274,8 @@ def main(
         model_out: Path,
         model_name: str,
         train_mode: Literal['encoder', 'decoder'],
+        device_batch_size: int,
+        gradient_accumulation_steps: int,
         init_symmetric: str = None,
         load_checkpoint: str = None,
 ):
@@ -294,6 +308,8 @@ def main(
             model_dir=model_out,
             model_name=model_name,
             train_mode=train_mode,
+            device_batch_size=device_batch_size,
+            gradient_accumulation_steps=gradient_accumulation_steps,
             init_symmetric=init_symmetric,
             load_checkpoint=load_checkpoint,
         )
@@ -319,6 +335,14 @@ if __name__ == "__main__":
                         default='encoder',
                         help="how to train the model (either encoder or decoder)"
                         )
+    parser.add_argument("--device_batch_size",
+                        type=int,
+                        default=32,
+                        )
+    parser.add_argument("--gradient_accumulation_steps",
+                        type=int,
+                        default=8,
+                        )
     parser.add_argument("--init",
                         type=str,
                         default=None,
@@ -336,6 +360,8 @@ if __name__ == "__main__":
         model_out=args.model_out,
         model_name=args.model_name,
         train_mode=args.mode,
+        device_batch_size=args.device_batch_size,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
         init_symmetric=args.init,
         load_checkpoint=args.checkpoint,
     )
