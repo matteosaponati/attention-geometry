@@ -218,6 +218,8 @@ def train_from_scratch(
 
     run_name = f"{model_name}--{train_mode_name}--{train_data.name}{mode}"
 
+    print("Rank", rank, "setup training")
+
     args = TrainingArguments(
         output_dir=str(training_output),
         # logging_dir=str(log_output),
