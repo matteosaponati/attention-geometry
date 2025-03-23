@@ -20,6 +20,7 @@ from transformers import (AutoConfig, AutoTokenizer, BertForMaskedLM,
                           BertLMHeadModel, DataCollatorForLanguageModeling, Trainer,
                           TrainingArguments)
 from transformers.models.bert.modeling_bert import BertSelfAttention
+import torch.distributed as dist
 
 from dataset import Sample, TrainDataset
 
@@ -191,9 +192,10 @@ def train_from_scratch(
                     lambda x: tokenizer([" ".join(x) for x in x["text"]], truncation=True, padding='max_length', max_length=512), batched=True, num_proc=8, )
                 tokenized_train_data_texts.save_to_disk(store_path)
 
-            # dist.barrier()
+            dist.barrier()
             while not Path(store_path).exists():
                 time.sleep(30)
+                print("Rank", rank, "waiting for tokenized data to be saved - did dist barrier work?")
             tokenized_train_data_texts = train_data_texts.load_from_disk(store_path)
 
             train = tokenized_train_data_texts
@@ -236,13 +238,15 @@ def train_from_scratch(
         save_total_limit=1,  # or increase to e.g., 200 to save and store every 1000 steps
         evaluation_strategy="no",
         report_to="wandb",
+        ddp_backend="gloo",
+        ddp_timeout=60,
         fp16=True,
         logging_steps=200,
         run_name=run_name,
         ignore_data_skip=train_data.name == "red_pajama",
     )
 
-
+    dist.barrier()
     print("Rank", rank, "start training")
 
     trainer = Trainer(
