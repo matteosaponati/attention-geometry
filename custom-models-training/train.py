@@ -127,30 +127,24 @@ def train_from_scratch(
         config = AutoConfig.from_pretrained('prajjwal1/bert-mini')
         tokenizer = AutoTokenizer.from_pretrained('google-bert/bert-base-uncased')
 
-        if train_mode == 'encoder':
-            model = BertForMaskedLM(config)
-            train_mode_name = train_mode
-        elif train_mode == 'decoder':
-            config.is_decoder = True
-            train_mode_name = train_mode
-            model = BertLMHeadModel(config)
-        else:
-            raise NotImplementedError()
+    elif model_name.split("-")[0] == "bert_large":
+        config = AutoConfig.from_pretrained('google-bert/bert-large-uncased')
+        tokenizer = AutoTokenizer.from_pretrained('google-bert/bert-large-uncased')
 
     elif model_name.split("-")[0] == "bert":
-
         config = AutoConfig.from_pretrained('google-bert/bert-base-uncased')
         tokenizer = AutoTokenizer.from_pretrained('google-bert/bert-base-uncased')
-        if train_mode == 'encoder':
-            model = BertForMaskedLM(config)
-            train_mode_name = train_mode
-        elif train_mode == 'decoder':
-            config.is_decoder = True
-            train_mode_name = train_mode
-            model = BertLMHeadModel(config)
-        else:
-            raise NotImplementedError()
 
+    else:
+        raise NotImplementedError()
+
+    if train_mode == 'encoder':
+        model = BertForMaskedLM(config)
+        train_mode_name = train_mode
+    elif train_mode == 'decoder':
+        config.is_decoder = True
+        train_mode_name = train_mode
+        model = BertLMHeadModel(config)
     else:
         raise NotImplementedError()
 
@@ -323,7 +317,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model-save", dest="model_out", type=Path, required=True)
     parser.add_argument("--model_name",
-                        choices=['bert_small', 'bert'],
+                        choices=['bert_small', 'bert', 'bert_large'],
                         type=str,
                         default='bert_small',
                         help="the model to use"
